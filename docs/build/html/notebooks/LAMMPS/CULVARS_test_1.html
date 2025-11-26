@@ -1,0 +1,1645 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>COLVARS ON THE INTERFACE &#8212; blog 1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sg_gallery.css?v=d2d258e8" />
+    <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <script src="../../_static/documentation_options.js?v=29a6c3e3"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="prev" title="not sure what to call this" href="../../things.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <p>Download and install some packages (this will prompt a restart to reinitialize our env)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
+<span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">condacolab</span>
+<span class="err">!</span><span class="n">python3</span><span class="mf">.12</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">setuptools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">condacolab</span>
+<span class="n">condacolab</span><span class="o">.</span><span class="n">install</span><span class="p">()</span>
+<span class="c1">#!conda install conda-forge::lammps</span>
+<span class="err">!</span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">ensurepip</span> <span class="o">--</span><span class="n">upgrade</span>
+<span class="err">!</span><span class="n">conda</span> <span class="n">install</span> <span class="o">--</span><span class="n">yes</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.12</span> <span class="n">lammps</span> <span class="n">numpy</span><span class="o">=</span><span class="mf">1.26.4</span> <span class="n">mdanalysis</span> <span class="n">py3dmol</span> <span class="c1"># dont really need these : openmm pdbfixer parmed py3dmol rdkit openff-toolkit</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">MDAnalysis</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">md</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">MDAnalysis.analysis.rdf</span><span class="w"> </span><span class="kn">import</span> <span class="n">InterRDF</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">MDAnalysis.analysis.msd</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">msd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">MDAnalysis.transformations.nojump</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoJump</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">norm</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">lj</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span><span class="n">sig</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="o">*</span><span class="n">eps</span><span class="o">*</span><span class="p">((</span><span class="n">sig</span><span class="o">/</span><span class="n">i</span><span class="p">)</span><span class="o">**</span><span class="mi">12</span><span class="o">-</span><span class="p">(</span><span class="n">sig</span><span class="o">/</span><span class="n">i</span><span class="p">)</span><span class="o">**</span><span class="mi">6</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="p">]</span>
+<span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mf">0.1</span>
+<span class="n">out</span> <span class="o">=</span> <span class="n">lj</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">wall</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">r</span><span class="p">,</span><span class="n">eps</span><span class="p">,</span><span class="n">sig</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="o">*</span><span class="n">eps</span><span class="o">*</span><span class="p">((</span><span class="n">sig</span><span class="o">/</span><span class="n">i</span><span class="p">)</span><span class="o">**</span><span class="mi">9</span><span class="o">-</span><span class="p">(</span><span class="n">sig</span><span class="o">/</span><span class="n">i</span><span class="p">)</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">r</span><span class="p">]</span>
+<span class="n">out2</span> <span class="o">=</span> <span class="n">wall</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">out</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;LJ&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">out2</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Wall&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="c1">#out</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x7917fb0e6a80&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_3_1.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_3_1.png" />
+</div>
+</div>
+<p>Test run wwith movie generation</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># PHASE SEPARATE</span>
+<span class="c1">#</span>
+
+<span class="n">temp</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1">#         @param</span>
+<span class="n">box_L</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1">#@param</span>
+<span class="n">thermo</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1"># @param</span>
+<span class="n">n_particles</span> <span class="o">=</span> <span class="mi">200</span> <span class="c1">#@param</span>
+
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">0.005</span> <span class="c1">#@param</span>
+<span class="n">n_steps</span> <span class="o">=</span> <span class="mi">100000</span> <span class="c1">#@param</span>
+
+<span class="n">lmp_test_in</span> <span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;#number of particles</span>
+<span class="s2">variable npart  equal </span><span class="si">{</span><span class="n">n_particles</span><span class="si">}</span>
+<span class="s2">variable temp equal </span><span class="si">{</span><span class="n">temp</span><span class="si">}</span>
+<span class="s2">variable dt equal </span><span class="si">{</span><span class="n">dt</span><span class="si">}</span>
+<span class="s2">variable n_steps equal </span><span class="si">{</span><span class="n">n_steps</span><span class="si">}</span>
+<span class="s2">##</span>
+<span class="s2">units               lj</span>
+<span class="s2">dimension 3</span>
+<span class="s2">atom_style  atomic</span>
+<span class="s2">boundary        p fm p</span>
+<span class="s2">#boundary        p p p</span>
+<span class="s2">###</span>
+<span class="s2">neighbor        2   bin</span>
+<span class="s2">neigh_modify    every 1 delay 0 check yes</span>
+<span class="s2">###</span>
+<span class="s2"># define box region</span>
+<span class="s2">region box block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">create_box 2 box</span>
+<span class="s2">#bond/types 2</span>
+
+<span class="s2"># define box region</span>
+<span class="s2">region box_1 block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 2.5 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">region box_2 block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="p">)</span><span class="si">}</span><span class="s2"> $(</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">-2.5) 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+
+
+<span class="s2">create_atoms 1 random $</span><span class="se">{{</span><span class="s2">npart</span><span class="se">}}</span><span class="s2"> 324523 box_1</span>
+<span class="s2">create_atoms 2 random $</span><span class="se">{{</span><span class="s2">npart</span><span class="se">}}</span><span class="s2"> 252531 box_2</span>
+
+<span class="s2">group wot id 1</span>
+<span class="s2">group oil id 2</span>
+
+<span class="s2">#all light particles has mass 1, the brownian particle mass 50</span>
+<span class="s2">mass   *    1</span>
+
+<span class="s2">pair_style lj/cut  2.5</span>
+<span class="s2">pair_coeff 1 1 1.0 1.0</span>
+<span class="s2">pair_coeff 2 2 1.0 1.0</span>
+<span class="s2">#</span>
+<span class="s2">pair_coeff 1 2 0.01 1.0</span>
+<span class="s2">pair_coeff 2 1 0.01 1.0</span>
+<span class="s2">pair_modify   shift yes</span>
+
+<span class="s2">###############</span>
+<span class="s2">fix walllow all wall/lj93 ylo EDGE 1.0 1.0 2.5 units box</span>
+<span class="s2">fix wallhi all wall/lj93 yhi EDGE 1.0 1.0 2.5 units box</span>
+<span class="s2">###############</span>
+
+<span class="s2">#minimize energy first to avoid overlapping particles</span>
+<span class="s2">minimize 1e-4 1e-4 10000 10000</span>
+<span class="s2">reset_timestep 0</span>
+
+<span class="s2">fix 1 all nvt temp $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> $(100.0*dt)</span>
+
+
+<span class="s2">velocity all create $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> 34234123 dist gaussian</span>
+
+
+<span class="s2">#output time step, temperature, average kinetic and potential energy</span>
+<span class="s2">compute msd_col all msd</span>
+<span class="s2">thermo_style custom step temp press c_msd_col[4] ke pe</span>
+<span class="s2">thermo              </span><span class="si">{</span><span class="n">thermo</span><span class="si">}</span>
+
+<span class="s2">dump positions all custom 100 out.dump id type x y z vx vy vz</span>
+
+<span class="s2">timestep $</span><span class="se">{{</span><span class="s2">dt</span><span class="se">}}</span>
+
+<span class="s2">#number of steps to run</span>
+<span class="s2">run         $</span><span class="se">{{</span><span class="s2">n_steps</span><span class="se">}}</span>
+<span class="s2">write_data out.data pair ij&quot;&quot;&quot;</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;lmp_test_in.in&#39;</span><span class="p">,</span><span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+  <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">lmp_test_in</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="ch">#!export OMP_NUM_THREADS=2</span>
+<span class="err">!</span><span class="n">mpirun</span> <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">core</span> <span class="n">lmp_mpi</span> <span class="o">&lt;</span> <span class="n">lmp_test_in</span><span class="o">.</span><span class="ow">in</span> <span class="o">&gt;</span> <span class="n">out</span><span class="o">.</span><span class="n">log</span>
+<span class="err">!</span><span class="n">tail</span> <span class="o">-</span><span class="mi">25</span> <span class="n">out</span><span class="o">.</span><span class="n">log</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 36.015     | 36.015     | 36.015     |   0.0 | 87.80
+Neigh   | 1.7704     | 1.7704     | 1.7704     |   0.0 |  4.32
+Comm    | 0.9772     | 0.9772     | 0.9772     |   0.0 |  2.38
+Output  | 1.1975     | 1.1975     | 1.1975     |   0.0 |  2.92
+Modify  | 0.8084     | 0.8084     | 0.8084     |   0.0 |  1.97
+Other   |            | 0.2527     |            |       |  0.62
+
+Nlocal:            400 ave         400 max         400 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2744 ave        2744 max        2744 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:          58760 ave       58760 max       58760 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 58760
+Ave neighs/atom = 146.9
+Neighbor list builds = 1219
+Dangerous builds = 0
+System init for write_data ...
+Generated 0 of 1 mixed pair_coeff terms from geometric mixing rule
+Total wall time: 0:00:41
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trj</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="s2">&quot;out.dump&quot;</span><span class="p">,</span><span class="n">topology_format</span><span class="o">=</span><span class="s2">&quot;LAMMPSDUMP&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">trj</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">oil</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 1&quot;</span><span class="p">)</span>
+<span class="n">water</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 2&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">oil</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span><span class="n">oil</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">2</span><span class="p">])</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">water</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">],</span><span class="n">water</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">2</span><span class="p">])</span>
+<span class="c1">#</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;z&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<span class="c1">#axs.legend()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/usr/local/lib/python3.12/site-packages/MDAnalysis/topology/LAMMPSParser.py:670: UserWarning: Guessed all Masses to 1.0
+  warnings.warn(&#34;Guessed all Masses to 1.0&#34;)
+/usr/local/lib/python3.12/site-packages/MDAnalysis/coordinates/LAMMPS.py:749: UserWarning: Reader has no dt information, set to 1.0 ps
+  ts.data[&#34;time&#34;] = step_num * ts.dt
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 0, &#39;y&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_7_2.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_7_2.png" />
+</div>
+</div>
+<p>Plot prob</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trj</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="s2">&quot;out.dump&quot;</span><span class="p">,</span><span class="n">topology_format</span><span class="o">=</span><span class="s2">&quot;LAMMPSDUMP&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="c1">#</span>
+<span class="n">oil</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 1&quot;</span><span class="p">)</span>
+<span class="n">water</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 2&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">o_oil</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#oil.positions[:,1]</span>
+<span class="n">o_water</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#water.positions[:,1]</span>
+<span class="c1">#</span>
+<span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">trj</span><span class="o">.</span><span class="n">trajectory</span><span class="p">:</span>
+  <span class="n">o_oil</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">oil</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">o_water</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">water</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="c1">#axs.hist(o_oil,bins=[i for i in range(20)])</span>
+<span class="c1">#axs.hist(o_water,bins=[i for i in range(20)])</span>
+<span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mf">0.25</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_oil</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_water</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<span class="n">axs</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<br/><br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 0, &#39;y&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_9_1.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_9_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># plot out</span>
+<span class="n">flag</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">pres</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">temp</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">msd</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;out.log&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rr</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">rr</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">flag</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Loop&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pres</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+                    <span class="n">temp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="n">msd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">flag</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Step&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;E_pair&quot;</span><span class="p">):</span>
+                    <span class="n">flag</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">continue</span>
+<span class="c1">#################################################################</span>
+<span class="n">p_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pres</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">t_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">msd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">msd</span><span class="p">)</span>
+<span class="c1">##</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Temp, $</span><span class="se">\\</span><span class="s2">mu$:</span><span class="si">{</span><span class="n">t_mean</span><span class="si">:</span><span class="s2">0.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pres</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Pressure, $</span><span class="se">\\</span><span class="s2">mu:$</span><span class="si">{</span><span class="n">p_mean</span><span class="si">:</span><span class="s2">0.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">msd</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(),</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;MSD&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_10_0.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_10_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trj</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="s2">&quot;out.dump&quot;</span><span class="p">,</span><span class="n">topology_format</span><span class="o">=</span><span class="s2">&quot;LAMMPSDUMP&quot;</span><span class="p">)</span>
+<span class="n">oil</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s1">&#39;type 1&#39;</span><span class="p">)</span>
+<span class="n">water</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s1">&#39;type 2&#39;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">oil_rdf</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">oil</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">water_rdf</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">water</span><span class="p">,</span><span class="n">water</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">wat_o</span> <span class="o">=</span>  <span class="n">InterRDF</span><span class="p">(</span><span class="n">water</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">wat_o</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">oil_rdf</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">water_rdf</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;MDAnalysis.analysis.rdf.InterRDF at 0x7ad6cbcfbe90&gt;
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="c1">#axs.scatter(rdf.bins, rdf.rdf,s=20,alpha=0.5,edgecolors=&#39;black&#39;,label=&#39;&#39;)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">oil_rdf</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">oil_rdf</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">water_rdf</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">water_rdf</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;water&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wat_o</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">wat_o</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;water-oil&quot;</span><span class="p">)</span>
+<span class="c1">#axs.set_ylim(0,None)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$r/</span><span class="se">\\</span><span class="s2">sigma$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;$g(r)$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/usr/local/lib/python3.12/site-packages/MDAnalysis/analysis/rdf.py:430: DeprecationWarning: The `bins` attribute was deprecated in MDAnalysis 2.0.0 and will be removed in MDAnalysis 3.0.0. Please use `results.bins` instead
+  warnings.warn(wmsg, DeprecationWarning)
+/usr/local/lib/python3.12/site-packages/MDAnalysis/analysis/rdf.py:440: DeprecationWarning: The `rdf` attribute was deprecated in MDAnalysis 2.0.0 and will be removed in MDAnalysis 3.0.0. Please use `results.rdf` instead
+  warnings.warn(wmsg, DeprecationWarning)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x7ad6c8dc60c0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_13_2.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_13_2.png" />
+</div>
+</div>
+<p>Run :)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
+<span class="n">trj</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="s2">&quot;out.dump&quot;</span><span class="p">,</span><span class="n">topology_format</span><span class="o">=</span><span class="s2">&quot;LAMMPSDUMP&quot;</span><span class="p">)</span>
+<span class="k">with</span> <span class="n">md</span><span class="o">.</span><span class="n">Writer</span><span class="p">(</span><span class="s2">&quot;out.pdb&quot;</span><span class="p">,</span><span class="n">trj</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span> <span class="k">as</span> <span class="n">W</span><span class="p">:</span>
+  <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">trj</span><span class="o">.</span><span class="n">trajectory</span><span class="p">:</span>
+    <span class="n">W</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">trj</span><span class="o">.</span><span class="n">atoms</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Lets move</p>
+<section id="COLVARS-ON-THE-INTERFACE">
+<h1>COLVARS ON THE INTERFACE<a class="headerlink" href="#COLVARS-ON-THE-INTERFACE" title="Link to this heading">¶</a></h1>
+<section id="standard-Metadynamics">
+<h2>standard Metadynamics<a class="headerlink" href="#standard-Metadynamics" title="Link to this heading">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">variables</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;colvarsTrajFrequency 10</span>
+<span class="s2">colvar </span><span class="se">{{</span>
+<span class="s2">  name dist</span>
+<span class="s2">  lowerBoundary 0.0</span>
+<span class="s2">  upperBoundary 15.0</span>
+<span class="s2">  width 0.5</span>
+<span class="s2">  distance </span><span class="se">{{</span>
+<span class="s2">  group1 </span><span class="se">{{</span><span class="s2">atomNumbers </span><span class="si">{</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">n_particles</span><span class="o">+</span><span class="mi">1</span><span class="w"> </span><span class="si">}</span><span class="se">}}</span>
+<span class="s2">  group2 </span><span class="se">{{</span><span class="s2">atomNumbers </span><span class="si">{</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">n_particles</span><span class="o">+</span><span class="mi">2</span><span class="w"> </span><span class="si">}</span><span class="se">}}</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">colvars</span> <span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="n">variables</span><span class="si">}</span>
+<span class="s2">metadynamics  </span><span class="se">{{</span>
+<span class="s2">  name meta_r</span>
+<span class="s2">  colvars dist</span>
+<span class="s2">  hillWeight 0.001</span>
+<span class="s2">  hillWidth 1.0</span>
+<span class="s2">  newHillFrequency 500</span>
+<span class="s2">  outputFreq  10</span>
+<span class="s2">  useGrids on</span>
+<span class="s2">  writeFreeEnergyFile on</span>
+<span class="s2">  #writeTIPMF on</span>
+<span class="s2">  outputEnergy on</span>
+
+<span class="se">}}</span>
+
+<span class="s2">harmonicWalls </span><span class="se">{{</span>
+<span class="s2">  name wall_r</span>
+<span class="s2">  colvars dist</span>
+<span class="s2">  upperWalls 13.0</span>
+<span class="s2">  upperWallConstant 2.0</span>
+<span class="se">}}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;in.colvars&quot;</span><span class="p">,</span><span class="s2">&quot;w+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+  <span class="n">w</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">colvars</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title run</span>
+<span class="c1"># PHASE SEPARATE</span>
+<span class="c1">#</span>
+<span class="n">dens</span> <span class="o">=</span> <span class="mf">0.75</span>
+<span class="n">temp</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">box_L</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1"># 1/2 box length</span>
+<span class="n">thermo</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1"># step to dump thermo</span>
+<span class="n">n_particles</span> <span class="o">=</span> <span class="mi">200</span> <span class="c1">#np.floor(dens*2*(box_L))</span>
+
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">0.005</span>
+<span class="n">n_steps</span> <span class="o">=</span> <span class="mi">100000</span>
+
+<span class="n">lmp_test_in</span> <span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;#number of particles</span>
+<span class="s2">variable npart  equal </span><span class="si">{</span><span class="n">n_particles</span><span class="si">}</span>
+<span class="s2">variable temp equal </span><span class="si">{</span><span class="n">temp</span><span class="si">}</span>
+<span class="s2">variable dt equal </span><span class="si">{</span><span class="n">dt</span><span class="si">}</span>
+<span class="s2">variable n_steps equal </span><span class="si">{</span><span class="n">n_steps</span><span class="si">}</span>
+<span class="s2">##</span>
+<span class="s2">units               lj</span>
+<span class="s2">dimension 3</span>
+<span class="s2">atom_style  atomic</span>
+<span class="s2">boundary        p fm p</span>
+<span class="s2">#boundary        p p p</span>
+<span class="s2">###</span>
+<span class="s2">neighbor        2   bin</span>
+<span class="s2">neigh_modify    every 1 delay 0 check yes</span>
+<span class="s2">atom_modify map yes</span>
+<span class="s2">###</span>
+<span class="s2"># define box region</span>
+<span class="s2">region box block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">create_box 4 box</span>
+<span class="s2">#bond/types 2</span>
+
+<span class="s2"># define box region</span>
+<span class="s2">region box_1 block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 2.5 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">region box_2 block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="p">)</span><span class="si">}</span><span class="s2"> $(</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">-2.5) 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+
+<span class="s2">### CREATE ATOMS</span>
+<span class="s2">create_atoms 1 random $</span><span class="se">{{</span><span class="s2">npart</span><span class="se">}}</span><span class="s2"> 324523 box_1</span>
+<span class="s2">create_atoms 2 random $</span><span class="se">{{</span><span class="s2">npart</span><span class="se">}}</span><span class="s2"> 252531 box_2</span>
+<span class="s2"># ADD TWO &#39;NANOS&#39; ON THE SURFACE</span>
+<span class="s2">create_atoms 3 single 2.5 10.0 1.0</span>
+<span class="s2">create_atoms 4 single 2.5 10.0 3.0</span>
+<span class="s2">####</span>
+
+<span class="s2">group wot id 1</span>
+<span class="s2">group oil id 2</span>
+
+<span class="s2">#all light particles has mass 1, the brownian particle mass 50</span>
+<span class="s2">mass   *    1</span>
+
+<span class="s2">pair_style lj/cut  2.5</span>
+<span class="s2"># FOR OIL AND WOTER</span>
+<span class="s2">pair_coeff 1 1 1.0 1.0</span>
+<span class="s2">pair_coeff 2 2 1.0 1.0</span>
+<span class="s2">#</span>
+<span class="s2">pair_coeff 1 2 0.01 1.0</span>
+<span class="s2">pair_coeff 2 1 0.01 1.0</span>
+
+<span class="s2"># FOR NANO</span>
+<span class="s2">pair_coeff 3 4 1.0 1.0</span>
+<span class="s2">pair_coeff 3 3 1.0 1.0</span>
+
+<span class="s2">pair_coeff 4 3 1.0 1.0</span>
+<span class="s2">pair_coeff 4 4 1.0 1.0</span>
+
+<span class="s2"># part 1 and nano</span>
+<span class="s2">pair_coeff 1 3 0.5 1.0</span>
+<span class="s2">pair_coeff 1 3 0.5 1.0</span>
+
+<span class="s2">pair_coeff 1 4 0.5 1.0</span>
+<span class="s2">pair_coeff 1 4 0.5 1.0</span>
+
+<span class="s2"># part 2 and nano</span>
+<span class="s2">pair_coeff 2 3 0.5 1.0</span>
+<span class="s2">pair_coeff 2 3 0.5 1.0</span>
+
+<span class="s2">pair_coeff 2 4 0.5 1.0</span>
+<span class="s2">pair_coeff 2 4 0.5 1.0</span>
+
+<span class="s2"># SHIFT LJ AT CUTOFF</span>
+<span class="s2">pair_modify   shift yes</span>
+
+<span class="s2">###############</span>
+<span class="s2">fix walllow all wall/lj93 ylo EDGE 1.0 1.0 2.5 units box</span>
+<span class="s2">fix wallhi all wall/lj93 yhi EDGE 1.0 1.0 2.5 units box</span>
+<span class="s2">###############</span>
+<span class="s2">#</span>
+<span class="s2">#minimize energy first to avoid overlapping particles</span>
+<span class="s2">minimize 1e-4 1e-4 10000 10000</span>
+<span class="s2">reset_timestep 0</span>
+
+<span class="s2">fix NVT all nvt temp $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> $(100.0*dt)</span>
+
+
+<span class="s2">velocity all create $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> 34234123 dist gaussian</span>
+
+
+<span class="s2">#output time step, temperature, average kinetic and potential energy</span>
+<span class="s2">compute msd_col all msd</span>
+<span class="s2">thermo_style custom step temp press c_msd_col[4] ke pe</span>
+<span class="s2">thermo              </span><span class="si">{</span><span class="n">thermo</span><span class="si">}</span>
+
+<span class="s2">dump positions all custom 100 eq_colvar.dump id type x y z vx vy vz</span>
+<span class="s2">dump_modify positions sort id</span>
+
+<span class="s2">timestep $</span><span class="se">{{</span><span class="s2">dt</span><span class="se">}}</span>
+
+<span class="s2">#number of steps to run</span>
+<span class="s2">run         $</span><span class="se">{{</span><span class="s2">n_steps</span><span class="se">}}</span>
+<span class="s2">print &quot;equilibration done&quot;</span>
+
+<span class="s2">fix Colvars all colvars in.colvars output out.colvars tstat NVT</span>
+<span class="s2">undump positions</span>
+<span class="s2">dump positions all custom 100 colvar_test_out.dump id type x y z vx vy vz</span>
+<span class="s2">dump_modify positions sort id</span>
+<span class="s2">run         $</span><span class="se">{{</span><span class="s2">n_steps</span><span class="se">}}</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;colvar_test_in.in&#39;</span><span class="p">,</span><span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+  <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">lmp_test_in</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="err">!</span><span class="n">mpirun</span> <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">core</span> <span class="n">lmp_mpi</span> <span class="o">&lt;</span> <span class="n">colvar_test_in</span><span class="o">.</span><span class="ow">in</span> <span class="o">&gt;</span> <span class="n">colvar_test</span><span class="o">.</span><span class="n">log</span>
+<span class="err">!</span><span class="n">tail</span> <span class="o">-</span><span class="mi">25</span> <span class="n">colvar_test</span><span class="o">.</span><span class="n">log</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Output  | 1.7592     | 1.7592     | 1.7592     |   0.0 |  2.72
+Modify  | 6.3035     | 6.3035     | 6.3035     |   0.0 |  9.75
+Other   |            | 0.4092     |            |       |  0.63
+
+Nlocal:            402 ave         402 max         402 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2751 ave        2751 max        2751 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:          58812 ave       58812 max       58812 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 58812
+Ave neighs/atom = 146.29851
+Neighbor list builds = 1215
+Dangerous builds = 0
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+- Colvars module (Fiorin2013, plus other works listed for specific features)
+The log file lists these citations in BibTeX format.
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Total wall time: 0:02:03
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title plot thermo</span>
+<span class="n">trj</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="s2">&quot;eq_colvar.dump&quot;</span><span class="p">,</span><span class="n">topology_format</span><span class="o">=</span><span class="s2">&quot;LAMMPSDUMP&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">oil</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 1&quot;</span><span class="p">)</span>
+<span class="n">water</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 2&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">nano1</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 3&quot;</span><span class="p">)</span>
+<span class="n">nano2</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 4&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">o_n1</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">o_n2</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">o_oil</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#oil.positions[:,1]</span>
+<span class="n">o_water</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#water.positions[:,1]</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">trj</span><span class="o">.</span><span class="n">trajectory</span><span class="p">:</span>
+  <span class="n">o_oil</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">oil</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">o_water</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">water</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">o_n1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nano1</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">o_n2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nano2</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c1">#axs.hist(o_oil,bins=[i for i in range(20)])</span>
+<span class="c1">#axs.hist(o_water,bins=[i for i in range(20)])</span>
+<span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mf">0.25</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_oil</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_water</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">)</span>
+<span class="c1"># nano[0]s</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_n1</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_n2</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">)</span>
+
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<span class="c1">############################ RDF</span>
+<span class="c1">#</span>
+<span class="n">oil_rdf</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">oil</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">water_rdf</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">water</span><span class="p">,</span><span class="n">water</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">wat_o</span> <span class="o">=</span>  <span class="n">InterRDF</span><span class="p">(</span><span class="n">water</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">nano2_oil</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">nano2</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">nano1_oil</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">nano1</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">nano2_water</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">nano2</span><span class="p">,</span><span class="n">water</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">nano1_water</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">nano1</span><span class="p">,</span><span class="n">water</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">nano2_oil</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">nano1_oil</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">nano2_water</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">nano1_water</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+<span class="n">wat_o</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">oil_rdf</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">water_rdf</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+<span class="c1">#axs.scatter(rdf.bins, rdf.rdf,s=20,alpha=0.5,edgecolors=&#39;black&#39;,label=&#39;&#39;)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">oil_rdf</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">oil_rdf</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">water_rdf</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">water_rdf</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;water&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wat_o</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">wat_o</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;water-oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nano1_water</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">nano1_water</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;nano1 -water&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nano1_oil</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">nano1_oil</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;nano1 -oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nano2_oil</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">nano2_oil</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;nano2-oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nano2_water</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">nano2_water</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;nano2 - water&quot;</span><span class="p">)</span>
+<span class="c1">#ax[0][1]s.set_ylim(0,None)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$r/</span><span class="se">\\</span><span class="s2">sigma$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;$g(r)$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="c1">############# THERMO</span>
+<span class="c1"># plot out</span>
+<span class="n">flag</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">pres</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">temp</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">msd</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;colvar_test.log&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rr</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">rr</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">flag</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Loop&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pres</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+                    <span class="n">temp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="n">msd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">flag</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Step&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;E_pair&quot;</span><span class="p">):</span>
+                    <span class="n">flag</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">continue</span>
+<span class="c1">#################################################################</span>
+<span class="n">p_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pres</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">t_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">msd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">msd</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Temp, $</span><span class="se">\\</span><span class="s2">mu$:</span><span class="si">{</span><span class="n">t_mean</span><span class="si">:</span><span class="s2">0.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pres</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Pressure, $</span><span class="se">\\</span><span class="s2">mu:$</span><span class="si">{</span><span class="n">p_mean</span><span class="si">:</span><span class="s2">0.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="c1">#[1]</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">msd</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(),</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;MSD&quot;</span><span class="p">)</span>
+<span class="c1">#[1]</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_22_0.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_22_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title plot thermo w/META</span>
+<span class="n">trj</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="s2">&quot;colvar_test_out.dump&quot;</span><span class="p">,</span><span class="n">topology_format</span><span class="o">=</span><span class="s2">&quot;LAMMPSDUMP&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">oil</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 1&quot;</span><span class="p">)</span>
+<span class="n">water</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 2&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">nano1</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 3&quot;</span><span class="p">)</span>
+<span class="n">nano2</span> <span class="o">=</span> <span class="n">trj</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;type 4&quot;</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">o_n1</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">o_n2</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">o_oil</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#oil.positions[:,1]</span>
+<span class="n">o_water</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#water.positions[:,1]</span>
+<span class="c1">#</span>
+<span class="c1">#</span>
+<span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">trj</span><span class="o">.</span><span class="n">trajectory</span><span class="p">:</span>
+  <span class="n">o_oil</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">oil</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">o_water</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">water</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">o_n1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nano1</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">o_n2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nano2</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="c1">#axs.hist(o_oil,bins=[i for i in range(20)])</span>
+<span class="c1">#axs.hist(o_water,bins=[i for i in range(20)])</span>
+<span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mf">0.25</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_oil</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_water</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">)</span>
+<span class="c1"># nano[0]s</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_n1</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">o_n2</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span><span class="n">bins</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">histtype</span><span class="o">=</span><span class="s1">&#39;step&#39;</span><span class="p">)</span>
+
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<span class="c1">############################ RDF</span>
+<span class="c1">#</span>
+<span class="n">oil_rdf</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">oil</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">water_rdf</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">water</span><span class="p">,</span><span class="n">water</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">wat_o</span> <span class="o">=</span>  <span class="n">InterRDF</span><span class="p">(</span><span class="n">water</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">nano2_oil</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">nano2</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">nano1_oil</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">nano1</span><span class="p">,</span><span class="n">oil</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">nano2_water</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">nano2</span><span class="p">,</span><span class="n">water</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">nano1_water</span> <span class="o">=</span> <span class="n">InterRDF</span><span class="p">(</span><span class="n">nano1</span><span class="p">,</span><span class="n">water</span><span class="p">,</span><span class="nb">range</span><span class="o">=</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="c1">#</span>
+<span class="n">nano2_oil</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">nano1_oil</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">nano2_water</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">nano1_water</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+<span class="n">wat_o</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">oil_rdf</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="n">water_rdf</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+<span class="c1">#axs.scatter(rdf.bins, rdf.rdf,s=20,alpha=0.5,edgecolors=&#39;black&#39;,label=&#39;&#39;)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">oil_rdf</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">oil_rdf</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">water_rdf</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">water_rdf</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;water&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">wat_o</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">wat_o</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;water-oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nano1_water</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">nano1_water</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;nano1 -water&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nano1_oil</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">nano1_oil</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;nano1 -oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nano2_oil</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">nano2_oil</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;nano2-oil&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nano2_water</span><span class="o">.</span><span class="n">bins</span><span class="p">,</span><span class="n">nano2_water</span><span class="o">.</span><span class="n">rdf</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;nano2 - water&quot;</span><span class="p">)</span>
+<span class="c1">#ax[0][1]s.set_ylim(0,None)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$r/</span><span class="se">\\</span><span class="s2">sigma$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;$g(r)$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="c1">############# THERMO</span>
+<span class="c1"># plot out</span>
+<span class="n">flag</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">pres</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">temp</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">msd</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;colvar_test.log&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">rr</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">rr</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">flag</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Loop&quot;</span><span class="p">:</span>
+                    <span class="k">break</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">pres</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+                    <span class="n">temp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                    <span class="n">msd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">flag</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Step&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;E_pair&quot;</span><span class="p">):</span>
+                    <span class="n">flag</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="k">continue</span>
+<span class="c1">#################################################################</span>
+<span class="n">p_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pres</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">t_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="n">msd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">msd</span><span class="p">)</span>
+<span class="c1">#</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">temp</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Temp, $</span><span class="se">\\</span><span class="s2">mu$:</span><span class="si">{</span><span class="n">t_mean</span><span class="si">:</span><span class="s2">0.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">pres</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Pressure, $</span><span class="se">\\</span><span class="s2">mu:$</span><span class="si">{</span><span class="n">p_mean</span><span class="si">:</span><span class="s2">0.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="c1">#[1]</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">msd</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(),</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;MSD&quot;</span><span class="p">)</span>
+<span class="c1">#[1]</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_23_0.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_23_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="err">!</span><span class="n">head</span> <span class="n">out</span><span class="o">.</span><span class="n">colvars</span><span class="o">.</span><span class="n">pmf</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+# 1
+#  0.00000000000000e+00  5.00000000000000e-01         30  0
+
+  2.50000000000000e-01   2.82917564393385e-02
+  7.50000000000000e-01   2.45394312121962e-02
+  1.25000000000000e+00   1.04678628441678e-02
+  1.75000000000000e+00   1.17799288678250e-02
+  2.25000000000000e+00  -0.00000000000000e+00
+  2.75000000000000e+00   4.22220050882955e-03
+  3.25000000000000e+00   8.38983142510885e-03
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pmf</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">step</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;out.colvars.pmf&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
+  <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">pmf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">step</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">continue</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">step</span><span class="p">,</span><span class="n">pmf</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;PMF&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$</span><span class="se">\\</span><span class="s2">xi$ / r&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 0, &#39;$\\xi$ / r&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_25_1.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_25_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># plot metaD</span>
+<span class="n">step</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">val</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">energ</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;out.colvars.colvars.traj&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">t</span><span class="p">:</span>
+  <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">t</span><span class="p">:</span>
+    <span class="n">tmp</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">step</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+      <span class="n">val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+      <span class="n">energ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+      <span class="k">continue</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">step</span><span class="p">,</span><span class="n">val</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;dist / $</span><span class="se">\\</span><span class="s2">sigma$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;step/ $</span><span class="se">\\</span><span class="s2">delta t$&quot;</span><span class="p">)</span>
+<span class="c1">##</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">step</span><span class="p">,</span><span class="n">energ</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;E/ bias&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;step/ $</span><span class="se">\\</span><span class="s2">delta t$&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_26_0.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_26_0.png" />
+</div>
+</div>
+</section>
+<section id="OPES-Metadynamics">
+<h2>OPES-Metadynamics<a class="headerlink" href="#OPES-Metadynamics" title="Link to this heading">¶</a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">variables</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;colvarsTrajFrequency 10</span>
+<span class="s2">colvar </span><span class="se">{{</span>
+<span class="s2">  name distr</span>
+<span class="s2">  lowerBoundary 0.0</span>
+<span class="s2">  upperBoundary 15</span>
+<span class="s2">  width 0.5</span>
+<span class="s2">  distance </span><span class="se">{{</span>
+<span class="s2">  group1 </span><span class="se">{{</span><span class="s2">atomNumbers </span><span class="si">{</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">n_particles</span><span class="o">+</span><span class="mi">1</span><span class="w"> </span><span class="si">}</span><span class="se">}}</span>
+<span class="s2">  group2 </span><span class="se">{{</span><span class="s2">atomNumbers </span><span class="si">{</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">n_particles</span><span class="o">+</span><span class="mi">2</span><span class="w"> </span><span class="si">}</span><span class="se">}}</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="n">variables</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;colvarsTrajFrequency 10</span>
+<span class="s2">colvar </span><span class="se">{{</span>
+<span class="s2">  name distr</span>
+<span class="s2">  lowerBoundary 0.0</span>
+<span class="s2">  upperBoundary 10</span>
+<span class="s2">  width 0.5</span>
+<span class="s2">  distance </span><span class="se">{{</span>
+<span class="s2">  group1 </span><span class="se">{{</span><span class="s2">atomNumbers </span><span class="si">{</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">n_particles</span><span class="o">+</span><span class="mi">1</span><span class="w"> </span><span class="si">}</span><span class="se">}}</span>
+<span class="s2">  group2 </span><span class="se">{{</span><span class="s2">atomNumbers </span><span class="si">{</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">n_particles</span><span class="o">+</span><span class="mi">2</span><span class="w"> </span><span class="si">}</span><span class="se">}}</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span>
+
+<span class="s2">colvar </span><span class="se">{{</span>
+<span class="s2">  name dist_i</span>
+<span class="s2">  width 0.5</span>
+<span class="s2">  upperBoundary 10</span>
+<span class="s2">  distanceZ  </span><span class="se">{{</span>
+<span class="s2">  main </span><span class="se">{{</span><span class="s2">atomNumbers </span><span class="si">{</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">n_particles</span><span class="o">+</span><span class="mi">2</span><span class="w"> </span><span class="si">}</span><span class="s2"> </span><span class="se">}}</span>
+<span class="s2">  ref </span><span class="se">{{</span><span class="s2">dummyAtom  (2.5, 10.0, 2.5)</span><span class="se">}}</span>
+<span class="s2">  axis (0.0, 1.0, 0.0)</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span>
+
+<span class="s2">colvar </span><span class="se">{{</span>
+<span class="s2">  name dist_j</span>
+<span class="s2">  width 0.5</span>
+<span class="s2">  upperBoundary 10</span>
+<span class="s2">  distanceZ  </span><span class="se">{{</span>
+<span class="s2">  main </span><span class="se">{{</span><span class="s2">atomNumbers </span><span class="si">{</span><span class="w"> </span><span class="mi">2</span><span class="o">*</span><span class="n">n_particles</span><span class="o">+</span><span class="mi">1</span><span class="w"> </span><span class="si">}</span><span class="s2"> </span><span class="se">}}</span>
+<span class="s2">  ref </span><span class="se">{{</span><span class="s2">dummyAtom  (2.5, 10.0, 2.5)</span><span class="se">}}</span>
+<span class="s2">  axis (0.0, 1.0, 0.0)</span>
+<span class="s2">  </span><span class="se">}}</span>
+<span class="se">}}</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="c1">####</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">colvar {{</span>
+<span class="sd">  name dist_i</span>
+<span class="sd">  width 10.0</span>
+<span class="sd">  distancePairs  {{</span>
+<span class="sd">  group1 {{dummyAtom  (2.5, 10.0, 2.5)}}</span>
+<span class="sd">  group2 {{atomNumbers { 2*n_particles+1 } { 2*n_particles+2 } }}</span>
+<span class="sd">  }}</span>
+<span class="sd">}}</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1">#####</span>
+<span class="n">colvars</span> <span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="n">variables</span><span class="si">}</span>
+<span class="s2">opes_metad </span><span class="se">{{</span>
+<span class="s2">  name oops_meta</span>
+<span class="s2">  colvars distr</span>
+<span class="s2">  newHillFrequency 100</span>
+<span class="s2">  barrier 10</span>
+<span class="s2">  biasfactor 10</span>
+<span class="s2">  adaptiveSigma on</span>
+<span class="s2">  neighborList on</span>
+<span class="s2">  printTrajectoryFrequency 50</span>
+<span class="s2">  pmf on</span>
+<span class="s2">  pmfColvars distr</span>
+<span class="s2">  pmfHistoryFrequency 50</span>
+<span class="s2">  outputEnergy on</span>
+<span class="se">}}</span>
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="c1">#########</span>
+<span class="n">colvars</span> <span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span><span class="si">{</span><span class="n">variables</span><span class="si">}</span>
+<span class="s2">metadynamics  </span><span class="se">{{</span>
+<span class="s2">  name meta_r</span>
+<span class="s2">  colvars distr dist_i dist_j</span>
+<span class="s2">  hillWeight 0.001</span>
+<span class="s2">  hillWidth 1.0</span>
+<span class="s2">  newHillFrequency 100</span>
+<span class="s2">  outputFreq  10</span>
+<span class="s2">  useGrids on</span>
+<span class="s2">  writeFreeEnergyFile on</span>
+<span class="s2">  #writeTIPMF on</span>
+<span class="s2">  outputEnergy on</span>
+<span class="se">}}</span>
+
+<span class="s2">harmonicWalls </span><span class="se">{{</span>
+<span class="s2">  name walls</span>
+<span class="s2">  colvars    distr dist_i dist_j</span>
+<span class="s2">  upperWalls 8.0  8.0   8.0</span>
+<span class="s2">  upperWallConstant 2.0</span>
+<span class="se">}}</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;opes_in.colvars&quot;</span><span class="p">,</span><span class="s2">&quot;w+&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+  <span class="n">w</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">colvars</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">#@title run</span>
+<span class="c1"># PHASE SEPARATE</span>
+<span class="c1">#</span>
+<span class="n">dens</span> <span class="o">=</span> <span class="mf">0.75</span>
+<span class="n">temp</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">box_L</span> <span class="o">=</span> <span class="mi">10</span> <span class="c1"># 1/2 box length</span>
+<span class="n">thermo</span> <span class="o">=</span> <span class="mi">1000</span> <span class="c1"># step to dump thermo</span>
+<span class="n">n_particles</span> <span class="o">=</span> <span class="mi">200</span> <span class="c1">#np.floor(dens*2*(box_L))</span>
+
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">0.005</span>
+<span class="n">n_steps</span> <span class="o">=</span> <span class="mi">100000</span>
+
+<span class="n">lmp_test_in</span> <span class="o">=</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;#number of particles</span>
+<span class="s2">variable npart  equal </span><span class="si">{</span><span class="n">n_particles</span><span class="si">}</span>
+<span class="s2">variable temp equal </span><span class="si">{</span><span class="n">temp</span><span class="si">}</span>
+<span class="s2">variable dt equal </span><span class="si">{</span><span class="n">dt</span><span class="si">}</span>
+<span class="s2">variable n_steps equal </span><span class="si">{</span><span class="n">n_steps</span><span class="si">}</span>
+<span class="s2">##</span>
+<span class="s2">units               lj</span>
+<span class="s2">dimension 3</span>
+<span class="s2">atom_style  atomic</span>
+<span class="s2">boundary        p fm p</span>
+<span class="s2">#boundary        p p p</span>
+<span class="s2">###</span>
+<span class="s2">neighbor        2   bin</span>
+<span class="s2">neigh_modify    every 1 delay 0 check yes</span>
+<span class="s2">atom_modify map yes</span>
+<span class="s2">###</span>
+<span class="s2"># define box region</span>
+<span class="s2">region box block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">create_box 4 box</span>
+<span class="s2">#bond/types 2</span>
+
+<span class="s2"># define box region</span>
+<span class="s2">region box_1 block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> 2.5 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="p">)</span><span class="si">}</span><span class="s2"> 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">region box_2 block 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="p">)</span><span class="si">}</span><span class="s2"> $(</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">*</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span><span class="s2">-2.5) 0.0 </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">box_L</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span><span class="si">}</span>
+
+<span class="s2">### CREATE ATOMS</span>
+<span class="s2">create_atoms 1 random $</span><span class="se">{{</span><span class="s2">npart</span><span class="se">}}</span><span class="s2"> 324523 box_1</span>
+<span class="s2">create_atoms 2 random $</span><span class="se">{{</span><span class="s2">npart</span><span class="se">}}</span><span class="s2"> 252531 box_2</span>
+<span class="s2"># ADD TWO &#39;NANOS&#39; ON THE SURFACE</span>
+<span class="s2">create_atoms 3 single 2.5 10.0 1.0</span>
+<span class="s2">create_atoms 4 single 2.5 10.0 3.0</span>
+<span class="s2">####</span>
+
+<span class="s2">group wot id 1</span>
+<span class="s2">group oil id 2</span>
+
+<span class="s2">#all light particles has mass 1, the brownian particle mass 50</span>
+<span class="s2">mass   *    1</span>
+
+<span class="s2">pair_style lj/cut  2.5</span>
+<span class="s2"># FOR OIL AND WOTER</span>
+<span class="s2">pair_coeff 1 1 1.0 1.0</span>
+<span class="s2">pair_coeff 2 2 1.0 1.0</span>
+<span class="s2">#</span>
+<span class="s2">pair_coeff 1 2 0.01 1.0</span>
+<span class="s2">pair_coeff 2 1 0.01 1.0</span>
+
+<span class="s2"># FOR NANO</span>
+<span class="s2">pair_coeff 3 4 1.0 1.0</span>
+<span class="s2">pair_coeff 3 3 1.0 1.0</span>
+
+<span class="s2">pair_coeff 4 3 1.0 1.0</span>
+<span class="s2">pair_coeff 4 4 1.0 1.0</span>
+
+<span class="s2"># part 1 and nano</span>
+<span class="s2">pair_coeff 1 3 0.5 1.0</span>
+<span class="s2">pair_coeff 1 3 0.5 1.0</span>
+
+<span class="s2">pair_coeff 1 4 0.5 1.0</span>
+<span class="s2">pair_coeff 1 4 0.5 1.0</span>
+
+<span class="s2"># part 2 and nano</span>
+<span class="s2">pair_coeff 2 3 0.5 1.0</span>
+<span class="s2">pair_coeff 2 3 0.5 1.0</span>
+
+<span class="s2">pair_coeff 2 4 0.5 1.0</span>
+<span class="s2">pair_coeff 2 4 0.5 1.0</span>
+
+<span class="s2"># SHIFT LJ AT CUTOFF</span>
+<span class="s2">pair_modify   shift yes</span>
+
+<span class="s2">###############</span>
+<span class="s2">fix walllow all wall/lj93 ylo EDGE 1.0 1.0 2.5 units box</span>
+<span class="s2">fix wallhi all wall/lj93 yhi EDGE 1.0 1.0 2.5 units box</span>
+<span class="s2">###############</span>
+<span class="s2">#</span>
+<span class="s2">#minimize energy first to avoid overlapping particles</span>
+<span class="s2">minimize 1e-4 1e-4 10000 10000</span>
+<span class="s2">reset_timestep 0</span>
+
+<span class="s2">fix NVT all nvt temp $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> $(100.0*dt)</span>
+
+
+<span class="s2">velocity all create $</span><span class="se">{{</span><span class="s2">temp</span><span class="se">}}</span><span class="s2"> 34234123 dist gaussian</span>
+
+
+<span class="s2">#output time step, temperature, average kinetic and potential energy</span>
+<span class="s2">compute msd_col all msd</span>
+<span class="s2">thermo_style custom step temp press c_msd_col[4] ke pe</span>
+<span class="s2">thermo              </span><span class="si">{</span><span class="n">thermo</span><span class="si">}</span>
+
+<span class="s2">dump positions all custom 100 eq_colvar.dump id type x y z vx vy vz</span>
+<span class="s2">dump_modify positions sort id</span>
+
+<span class="s2">timestep $</span><span class="se">{{</span><span class="s2">dt</span><span class="se">}}</span>
+
+<span class="s2">#number of steps to run</span>
+<span class="s2">run         $</span><span class="se">{{</span><span class="s2">n_steps</span><span class="se">}}</span>
+<span class="s2">print &quot;equilibration done&quot;</span>
+
+<span class="s2">fix Colvars all colvars opes_in.colvars output out_opes.colvars tstat NVT</span>
+<span class="s2">undump positions</span>
+<span class="s2">dump positions all custom 100 opes.dump id type x y z vx vy vz</span>
+<span class="s2">dump_modify positions sort id</span>
+<span class="s2">run         $</span><span class="se">{{</span><span class="s2">n_steps</span><span class="se">}}</span>
+
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;opes.in&#39;</span><span class="p">,</span><span class="s1">&#39;w+&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+  <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">lmp_test_in</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="err">!</span><span class="n">mpirun</span> <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">core</span> <span class="n">lmp_mpi</span> <span class="o">&lt;</span> <span class="n">opes</span><span class="o">.</span><span class="ow">in</span> <span class="o">&gt;</span> <span class="n">opes_test</span><span class="o">.</span><span class="n">log</span>
+<span class="err">!</span><span class="n">tail</span> <span class="o">-</span><span class="mi">25</span> <span class="n">opes_test</span><span class="o">.</span><span class="n">log</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Output  | 1.8761     | 1.8761     | 1.8761     |   0.0 |  0.56
+Modify  | 275.83     | 275.83     | 275.83     |   0.0 | 82.17
+Other   |            | 0.5582     |            |       |  0.17
+
+Nlocal:            402 ave         402 max         402 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:           2729 ave        2729 max        2729 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:          58914 ave       58914 max       58914 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 58914
+Ave neighs/atom = 146.55224
+Neighbor list builds = 1258
+Dangerous builds = 0
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Your simulation uses code contributions which should be cited:
+- Colvars module (Fiorin2013, plus other works listed for specific features)
+The log file lists these citations in BibTeX format.
+
+CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE-CITE
+
+Total wall time: 0:06:37
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="err">!</span><span class="n">head</span> <span class="o">-</span><span class="mi">2</span> <span class="n">out_opes</span><span class="o">.</span><span class="n">colvars</span><span class="o">.</span><span class="n">pmf</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+# 3
+#  0.00000000000000e+00  5.00000000000000e-01         20  0
+#  0.00000000000000e+00  5.00000000000000e-01         20  0
+#  0.00000000000000e+00  5.00000000000000e-01         20  0
+
+  2.50000000000000e-01  2.50000000000000e-01  2.50000000000000e-01   1.37178474779528e-02
+  2.50000000000000e-01  2.50000000000000e-01  7.50000000000000e-01   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  1.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  1.75000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  2.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  2.75000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  3.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  3.75000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  4.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  4.75000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  5.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  5.75000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  6.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  6.75000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  7.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  7.75000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  8.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  8.75000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  9.25000000000000e+00   1.37179423804829e-02
+  2.50000000000000e-01  2.50000000000000e-01  9.75000000000000e+00   1.37179423804829e-02
+
+  2.50000000000000e-01  7.50000000000000e-01  2.50000000000000e-01   1.37179423804829e-02
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">len</span><span class="p">(</span><span class="n">pmf</span><span class="p">)</span><span class="o">/</span><span class="mi">20</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+400.0
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pmf</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">step</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;out_opes.colvars.pmf&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
+  <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">pmf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">step</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">continue</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="c1">#axs.plot(step,pmf)</span>
+<span class="c1">#axs.plot(pmf)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">40</span><span class="p">,</span><span class="mi">40</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">])</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;PMF&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$</span><span class="se">\\</span><span class="s2">xi$ / r&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 0, &#39;$\\xi$ / r&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_33_1.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_33_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pmf</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">step1</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">step2</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;out_opes.colvars.pmf&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
+  <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">pmf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">step1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">step2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">continue</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">axs</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">step1</span><span class="p">,</span><span class="n">pmf</span><span class="p">,</span><span class="n">c</span><span class="o">=</span><span class="n">pmf</span><span class="p">)</span>
+<span class="c1">##</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;idk&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;PMF&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$</span><span class="se">\\</span><span class="s2">xi$ / r&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 0, &#39;$\\xi$ / r&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_34_1.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_34_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pmf</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">xi1</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">xi2</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">xi3</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1">##</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;out_opes.colvars.pmf&quot;</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">r</span><span class="p">:</span>
+  <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">r</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">pmf</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="c1">#step.append(float(t[0]))</span>
+        <span class="n">xi1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">xi2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">xi3</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">continue</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="c1">#axs.plot(step,pmf)</span>
+<span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pmf</span><span class="p">)[</span><span class="o">-</span><span class="mi">100</span><span class="p">:]</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">xi1</span><span class="p">[</span><span class="o">-</span><span class="mi">20</span><span class="p">:],</span><span class="n">xi2</span><span class="p">[</span><span class="o">-</span><span class="mi">20</span><span class="p">:],</span><span class="n">v</span><span class="p">,</span><span class="n">shading</span><span class="o">=</span><span class="s1">&#39;gouraud&#39;</span><span class="p">)</span>
+<span class="c1">##</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;$g(</span><span class="se">\\</span><span class="s2">vec</span><span class="si">{r}</span><span class="s2">)/</span><span class="se">\\</span><span class="s2">mathring{{A}}$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;PMF&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;$</span><span class="se">\\</span><span class="s2">xi$ / r&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ValueError</span>                                Traceback (most recent call last)
+<span class="ansi-green-fg">/tmp/ipython-input-1170485773.py</span> in <span class="ansi-cyan-fg">&lt;cell line: 0&gt;</span><span class="ansi-blue-fg">()</span>
+<span class="ansi-green-intense-fg ansi-bold">     19</span> <span class="ansi-red-fg">#axs.plot(step,pmf)</span>
+<span class="ansi-green-intense-fg ansi-bold">     20</span> v <span class="ansi-blue-fg">=</span> np<span class="ansi-blue-fg">.</span>array<span class="ansi-blue-fg">(</span>pmf<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">-</span><span class="ansi-cyan-fg">100</span><span class="ansi-blue-fg">:</span><span class="ansi-blue-fg">]</span>
+<span class="ansi-green-fg">---&gt; 21</span><span class="ansi-red-fg"> </span>p <span class="ansi-blue-fg">=</span> ax<span class="ansi-blue-fg">.</span>pcolormesh<span class="ansi-blue-fg">(</span>xi1<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">-</span><span class="ansi-cyan-fg">20</span><span class="ansi-blue-fg">:</span><span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">,</span>xi2<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">-</span><span class="ansi-cyan-fg">20</span><span class="ansi-blue-fg">:</span><span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">,</span>v<span class="ansi-blue-fg">,</span>shading<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">&#39;gouraud&#39;</span><span class="ansi-blue-fg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">     22</span> <span class="ansi-red-fg">##</span>
+<span class="ansi-green-intense-fg ansi-bold">     23</span> fig<span class="ansi-blue-fg">.</span>colorbar<span class="ansi-blue-fg">(</span>p<span class="ansi-blue-fg">,</span>ax<span class="ansi-blue-fg">=</span>ax<span class="ansi-blue-fg">,</span> label<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">&#34;$g(\\vec{r})/\\mathring{{A}}$&#34;</span><span class="ansi-blue-fg">)</span>
+
+<span class="ansi-green-fg">/usr/local/lib/python3.12/dist-packages/matplotlib/__init__.py</span> in <span class="ansi-cyan-fg">inner</span><span class="ansi-blue-fg">(ax, data, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   1519</span>     <span class="ansi-green-fg">def</span> inner<span class="ansi-blue-fg">(</span>ax<span class="ansi-blue-fg">,</span> <span class="ansi-blue-fg">*</span>args<span class="ansi-blue-fg">,</span> data<span class="ansi-blue-fg">=</span><span class="ansi-green-fg">None</span><span class="ansi-blue-fg">,</span> <span class="ansi-blue-fg">**</span>kwargs<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">:</span>
+<span class="ansi-green-intense-fg ansi-bold">   1520</span>         <span class="ansi-green-fg">if</span> data <span class="ansi-green-fg">is</span> <span class="ansi-green-fg">None</span><span class="ansi-blue-fg">:</span>
+<span class="ansi-green-fg">-&gt; 1521</span><span class="ansi-red-fg">             return func(
+</span><span class="ansi-green-intense-fg ansi-bold">   1522</span>                 ax<span class="ansi-blue-fg">,</span>
+<span class="ansi-green-intense-fg ansi-bold">   1523</span>                 <span class="ansi-blue-fg">*</span>map<span class="ansi-blue-fg">(</span>cbook<span class="ansi-blue-fg">.</span>sanitize_sequence<span class="ansi-blue-fg">,</span> args<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">,</span>
+
+<span class="ansi-green-fg">/usr/local/lib/python3.12/dist-packages/matplotlib/axes/_axes.py</span> in <span class="ansi-cyan-fg">pcolormesh</span><span class="ansi-blue-fg">(self, alpha, norm, cmap, vmin, vmax, colorizer, shading, antialiased, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   6489</span>         kwargs<span class="ansi-blue-fg">.</span>setdefault<span class="ansi-blue-fg">(</span><span class="ansi-blue-fg">&#39;edgecolors&#39;</span><span class="ansi-blue-fg">,</span> <span class="ansi-blue-fg">&#39;none&#39;</span><span class="ansi-blue-fg">)</span>
+<span class="ansi-green-intense-fg ansi-bold">   6490</span>
+<span class="ansi-green-fg">-&gt; 6491</span><span class="ansi-red-fg">         X, Y, C, shading = self._pcolorargs(&#39;pcolormesh&#39;, *args,
+</span><span class="ansi-green-intense-fg ansi-bold">   6492</span>                                             shading=shading, kwargs=kwargs)
+<span class="ansi-green-intense-fg ansi-bold">   6493</span>         coords <span class="ansi-blue-fg">=</span> np<span class="ansi-blue-fg">.</span>stack<span class="ansi-blue-fg">(</span><span class="ansi-blue-fg">[</span>X<span class="ansi-blue-fg">,</span> Y<span class="ansi-blue-fg">]</span><span class="ansi-blue-fg">,</span> axis<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">-</span><span class="ansi-cyan-fg">1</span><span class="ansi-blue-fg">)</span>
+
+<span class="ansi-green-fg">/usr/local/lib/python3.12/dist-packages/matplotlib/axes/_axes.py</span> in <span class="ansi-cyan-fg">_pcolorargs</span><span class="ansi-blue-fg">(self, funcname, shading, *args, **kwargs)</span>
+<span class="ansi-green-intense-fg ansi-bold">   5997</span>                         <span class="ansi-blue-fg">&#39;non-finite values or be of type &#39;</span>
+<span class="ansi-green-intense-fg ansi-bold">   5998</span>                         &#39;numpy.ma.MaskedArray with masked values&#39;)
+<span class="ansi-green-fg">-&gt; 5999</span><span class="ansi-red-fg">             </span>nrows<span class="ansi-blue-fg">,</span> ncols <span class="ansi-blue-fg">=</span> C<span class="ansi-blue-fg">.</span>shape<span class="ansi-blue-fg">[</span><span class="ansi-blue-fg">:</span><span class="ansi-cyan-fg">2</span><span class="ansi-blue-fg">]</span>
+<span class="ansi-green-intense-fg ansi-bold">   6000</span>         <span class="ansi-green-fg">else</span><span class="ansi-blue-fg">:</span>
+<span class="ansi-green-intense-fg ansi-bold">   6001</span>             <span class="ansi-green-fg">raise</span> _api<span class="ansi-blue-fg">.</span>nargs_error<span class="ansi-blue-fg">(</span>funcname<span class="ansi-blue-fg">,</span> takes<span class="ansi-blue-fg">=</span><span class="ansi-blue-fg">&#34;1 or 3&#34;</span><span class="ansi-blue-fg">,</span> given<span class="ansi-blue-fg">=</span>len<span class="ansi-blue-fg">(</span>args<span class="ansi-blue-fg">)</span><span class="ansi-blue-fg">)</span>
+
+<span class="ansi-red-fg">ValueError</span>: not enough values to unpack (expected 2, got 1)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_35_1.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_35_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># plot metaD</span>
+<span class="n">step</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">distr</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">disti</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">distj</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1">#</span>
+<span class="n">energ</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;out_opes.colvars.colvars.traj&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">t</span><span class="p">:</span>
+  <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">t</span><span class="p">:</span>
+    <span class="n">tmp</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;#&quot;</span><span class="p">:</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">step</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">distr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="n">disti</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="n">distj</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+        <span class="c1">#</span>
+        <span class="n">energ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">continue</span>
+<span class="n">fig</span><span class="p">,</span><span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">step</span><span class="p">,</span><span class="n">distr</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;dist$_</span><span class="si">{ij}</span><span class="s2">$ / $</span><span class="se">\\</span><span class="s2">sigma$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;step/ $</span><span class="se">\\</span><span class="s2">delta t$&quot;</span><span class="p">)</span>
+<span class="c1">##[]</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">step</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">disti</span><span class="p">))</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;|dist$_</span><span class="si">{zi}</span><span class="s2">$| / $</span><span class="se">\\</span><span class="s2">sigma$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;step/ $</span><span class="se">\\</span><span class="s2">delta t$&quot;</span><span class="p">)</span>
+<span class="c1">##[]</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">step</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">distj</span><span class="p">))</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;|dist$_</span><span class="si">{zj}</span><span class="s2">$| / $</span><span class="se">\\</span><span class="s2">sigma$&quot;</span><span class="p">)</span>
+<span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;step/ $</span><span class="se">\\</span><span class="s2">delta t$&quot;</span><span class="p">)</span>
+<span class="c1">##</span>
+<span class="n">gs</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get_gridspec</span><span class="p">()</span>
+<span class="c1"># remove the underlying Axes</span>
+<span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]:</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">remove</span><span class="p">()</span>
+<span class="n">axbig</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+<span class="n">axbig</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">step</span><span class="p">,</span><span class="n">energ</span><span class="p">)</span>
+<span class="n">axbig</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;E/ bias&quot;</span><span class="p">)</span>
+<span class="n">axbig</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;step/ $</span><span class="se">\\</span><span class="s2">delta t$&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/notebooks_LAMMPS_CULVARS_test_1_37_0.png" src="../../_images/notebooks_LAMMPS_CULVARS_test_1_37_0.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">blog</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cv.html">CV</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../things.html">not sure what to call this</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../../things.html">not sure what to call this</a><ul>
+      <li>Previous: <a href="../../things.html" title="previous chapter">not sure what to call this</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, peter swanson.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../../_sources/notebooks/LAMMPS/CULVARS_test_1.ipynb.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
